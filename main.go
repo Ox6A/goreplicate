@@ -17,7 +17,7 @@ func main() {
 	defer index.Close()
 
 	// Index a directory (use a configurable path or default)
-	indexPath := "/home/localuser/cloneFolder/goreplicate/testfiles"
+	indexPath := "./testfiles" // Default to relative path
 	if len(os.Args) > 1 {
 		indexPath = os.Args[1]
 	}

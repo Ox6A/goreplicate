@@ -64,14 +64,14 @@ func udpBroadcast(identifier string, tcpPort int) {
 	fmt.Printf("udpBroadcast: starting (identifier=%s, tcp_port=%d)\n", identifier, tcpPort)
 	address, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
-		fmt.Printf("udpBroadcast: failed to resolve UDP address: %v\n", err)
-		return
+		fmt.Printf("udpBroadcast: FATAL - failed to resolve UDP address: %v\n", err)
+		panic(fmt.Sprintf("UDP broadcast initialization failed: %v", err))
 	}
 	fmt.Printf("udpBroadcast: resolved address %s\n", address.String())
 	connection, err := net.DialUDP("udp4", nil, address)
 	if err != nil {
-		fmt.Printf("udpBroadcast: failed to dial UDP: %v\n", err)
-		return
+		fmt.Printf("udpBroadcast: FATAL - failed to dial UDP: %v\n", err)
+		panic(fmt.Sprintf("UDP broadcast connection failed: %v", err))
 	}
 	fmt.Printf("udpBroadcast: connection established\n")
 	defer connection.Close()
@@ -80,7 +80,7 @@ func udpBroadcast(identifier string, tcpPort int) {
 		n, err := connection.Write([]byte(msg))
 		if err != nil {
 			fmt.Printf("udpBroadcast: write error: %v\n", err)
-			// Don't panic, just log and continue
+			// Don't panic for write errors, just log and continue
 			time.Sleep(5 * time.Second)
 			continue
 		}
@@ -106,8 +106,8 @@ func udpListen(identifier string, tcpPort int) {
 	fmt.Printf("udpListen: binding to port %d\n", port)
 	packetConnection, err := listenConfig.ListenPacket(context.TODO(), "udp4", fmt.Sprintf(":%d", port))
 	if err != nil {
-		fmt.Printf("udpListen: ListenPacket error: %v\n", err)
-		return
+		fmt.Printf("udpListen: FATAL - ListenPacket error: %v\n", err)
+		panic(fmt.Sprintf("UDP listener initialization failed: %v", err))
 	}
 	fmt.Printf("udpListen: listening on port %d\n", port)
 	defer packetConnection.Close()
@@ -126,7 +126,11 @@ func udpListen(identifier string, tcpPort int) {
 			
 			// Parse TCP port
 			var peerTCPPort int
-			fmt.Sscanf(receivedParts[2], "%d", &peerTCPPort)
+			_, err := fmt.Sscanf(receivedParts[2], "%d", &peerTCPPort)
+			if err != nil || peerTCPPort <= 0 {
+				fmt.Printf("Warning: failed to parse TCP port from peer message: %v\n", err)
+				continue
+			}
 			
 			peer := newPeer(receivedParts[1], address.String(), peerTCPPort)
 			fmt.Printf("Added new peer: %s at %s (TCP port: %d)\n", receivedParts[1], address.String(), peerTCPPort)
