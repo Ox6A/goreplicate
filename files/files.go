@@ -17,11 +17,11 @@ type FileIndex struct {
 }
 
 type FileEntry struct {
-	Path    string
-	Hash    string
-	Size    int64
-	ModTime time.Time
-	IsDir   bool
+	Path    string    `json:"path"`
+	Hash    string    `json:"hash"`
+	Size    int64     `json:"size"`
+	ModTime time.Time `json:"mod_time"`
+	IsDir   bool      `json:"is_dir"`
 }
 
 func NewFileIndex(dbPath string) (*FileIndex, error) {
@@ -102,4 +102,26 @@ func (fi *FileIndex) IndexDirectory(rootPath string) error {
 		}
 		return fi.insertOrUpdateEntry(entry)
 	})
+}
+
+// GetAllFiles returns all files in the index
+func (fi *FileIndex) GetAllFiles() ([]FileEntry, error) {
+	rows, err := fi.db.Query("SELECT path, hash, size, mod_time, is_dir FROM files ORDER BY path")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var files []FileEntry
+	for rows.Next() {
+		var entry FileEntry
+		var modTime int64
+		err := rows.Scan(&entry.Path, &entry.Hash, &entry.Size, &modTime, &entry.IsDir)
+		if err != nil {
+			return nil, err
+		}
+		entry.ModTime = time.Unix(modTime, 0)
+		files = append(files, entry)
+	}
+	return files, rows.Err()
 }
