@@ -2,10 +2,12 @@ package main
 
 import (
 	"goreplicate/files"
+	"goreplicate/networking"
 )
 
 func main() {
-	//networking.StartPeerDiscovery()
+	networking.StartPeerDiscovery()
+
 	index, err := files.NewFileIndex("files.db")
 	if err != nil {
 		panic(err)
